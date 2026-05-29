@@ -11,7 +11,7 @@ export async function sendOtpEmail(to: string, code: string, appName: string) {
 
   const resend = new Resend(apiKey);
   await resend.emails.send({
-    from: process.env.AUTH_EMAIL_FROM ?? 'Unified Access <no-reply@mailittlexp.org>',
+    from: process.env.AUTH_EMAIL_FROM ?? 'Unified Access <onboarding@resend.dev>',
     to,
     subject: `Your access code for ${appName}`,
     text: `Your ${appName} access code is ${code}. It is 6 characters (letters and digits) and expires in 10 minutes.`,
