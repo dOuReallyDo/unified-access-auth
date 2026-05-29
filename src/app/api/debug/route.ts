@@ -19,6 +19,12 @@ export async function GET() {
     dbStatus = `exception: ${e.message}`;
   }
 
+  const hasTgToken = !!process.env.TELEGRAM_BOT_TOKEN;
+  const tgTokenLen = (process.env.TELEGRAM_BOT_TOKEN || '').length;
+  const hasTgChat = !!process.env.TELEGRAM_ADMIN_CHAT_ID;
+  const hasResend = !!process.env.RESEND_API_KEY;
+  const resendLen = (process.env.RESEND_API_KEY || '').length;
+
   return NextResponse.json({
     supabaseUrl: url,
     hasAnonKey: hasAnon,
@@ -26,5 +32,10 @@ export async function GET() {
     anonKeyLength: anonLen,
     serviceKeyLength: svcLen,
     dbStatus,
+    hasTelegramToken: hasTgToken,
+    telegramTokenLength: tgTokenLen,
+    hasTelegramChatId: hasTgChat,
+    hasResendKey: hasResend,
+    resendKeyLength: resendLen,
   });
 }
