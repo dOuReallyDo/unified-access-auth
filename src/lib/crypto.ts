@@ -4,8 +4,14 @@ export function sha256(input: string): string {
   return createHash('sha256').update(input).digest('hex');
 }
 
-export function randomCode(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
+export function randomCode(length = 6): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I/O/0/1 to avoid confusion
+  let code = '';
+  const bytes = randomBytes(length);
+  for (let i = 0; i < length; i++) {
+    code += chars[bytes[i] % chars.length];
+  }
+  return code;
 }
 
 export function randomToken(bytes = 32): string {

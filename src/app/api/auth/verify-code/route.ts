@@ -10,7 +10,7 @@ import { audit } from '@/lib/audit';
 const Body = z.object({
   email: z.string().email(),
   appSlug: z.string().min(1),
-  code: z.string().regex(/^\d{6}$/),
+  code: z.string().regex(/^[A-Z2-8]{6}$/i),
   deviceName: z.string().optional(),
   trustDays: z.number().int().min(1).max(90).optional()
 });
