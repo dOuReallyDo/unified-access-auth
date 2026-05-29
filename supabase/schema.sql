@@ -110,4 +110,18 @@ alter table public.trusted_devices enable row level security;
 alter table public.passkey_credentials enable row level security;
 alter table public.audit_logs enable row level security;
 
+-- Admin sessions (for cookie-based admin dashboard auth)
+create table if not exists public.admin_sessions (
+  id uuid primary key default gen_random_uuid(),
+  session_token_hash text unique not null,
+  ip inet,
+  user_agent text,
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_admin_sessions_token on public.admin_sessions(session_token_hash);
+
+alter table public.admin_sessions enable row level security;
+
 -- Access is intentionally mediated by server routes using SUPABASE_SERVICE_ROLE_KEY.
