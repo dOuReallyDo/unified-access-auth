@@ -21,9 +21,22 @@ export async function GET() {
 
   const hasTgToken = !!process.env.TELEGRAM_BOT_TOKEN;
   const tgTokenLen = (process.env.TELEGRAM_BOT_TOKEN || '').length;
+  const tgTokenPrefix = process.env.TELEGRAM_BOT_TOKEN ? process.env.TELEGRAM_BOT_TOKEN.substring(0, 10) : 'MISSING';
   const hasTgChat = !!process.env.TELEGRAM_ADMIN_CHAT_ID;
   const hasResend = !!process.env.RESEND_API_KEY;
   const resendLen = (process.env.RESEND_API_KEY || '').length;
+
+  // Test Telegram API connectivity
+  let tgTest = 'not_tested';
+  if (hasTgToken) {
+    try {
+      const tgRes = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/getMe`);
+      const tgData = await tgRes.json();
+      tgTest = tgData.ok ? `ok: @${tgData.result.username}` : `error: ${tgData.description}`;
+    } catch (e: any) {
+      tgTest = `exception: ${e.message}`;
+    }
+  }
 
   return NextResponse.json({
     supabaseUrl: url,
@@ -34,7 +47,9 @@ export async function GET() {
     dbStatus,
     hasTelegramToken: hasTgToken,
     telegramTokenLength: tgTokenLen,
-    hasTelegramChatId: hasTgChat,
+    telegramTokenPrefix: tgTokenPrefix,
+    telegramChatId: hasTgChat,
+    telegramBotTest: tgTest,
     hasResendKey: hasResend,
     resendKeyLength: resendLen,
   });
