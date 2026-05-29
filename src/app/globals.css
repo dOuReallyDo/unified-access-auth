@@ -32,3 +32,5 @@ code { background:#e2e8f0; padding:2px 6px; border-radius:6px; }
 .btn-link { background:none; color:var(--muted); font-weight:400; font-size:14px; text-align:left; padding:4px 0; }
 .btn-link:hover { color:var(--text); }
 .login-footer { margin-top:24px; color:var(--muted); font-size:13px; }
+.pending-icon { font-size:48px; text-align:center; }
+.poll-timer { font-size:12px; color:var(--muted); min-height:18px; }

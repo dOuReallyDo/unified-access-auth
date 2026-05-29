@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
 
-type Step = 'email' | 'otp' | 'passkey-offer' | 'done';
+type Step = 'email' | 'otp' | 'pending' | 'passkey-offer' | 'done';
 
 export default function Home() {
   const [appSlug, setAppSlug] = useState('');
@@ -17,6 +17,8 @@ export default function Home() {
   const [appName, setAppName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [passkeysSupported, setPasskeysSupported] = useState(false);
+  const [approvalId, setApprovalId] = useState('');
+  const [pollTimer, setPollTimer] = useState(0);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -24,6 +26,33 @@ export default function Home() {
     setReturnTo(params.get('returnTo') || '');
     setPasskeysSupported(!!window.PublicKeyCredential);
   }, []);
+
+  // Poll for approval status when pending
+  useEffect(() => {
+    if (step !== 'pending' || !approvalId || !email) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/auth/request-status?approvalId=${approvalId}&email=${encodeURIComponent(email)}`);
+        const data = await res.json();
+        if (data.status === 'approved') {
+          setStep('email');
+          setError('');
+          setApprovalId('');
+          clearInterval(interval);
+        } else if (data.status === 'rejected') {
+          setStep('email');
+          setError('Richiesta di accesso negata dall\'amministratore.');
+          setApprovalId('');
+          clearInterval(interval);
+        } else {
+          setPollTimer(t => t + 1);
+        }
+      } catch {
+        // Network error — keep polling
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [step, approvalId, email]);
 
   const requestCode = useCallback(async () => {
     if (!email || !appSlug) { setError('Email e app sono obbligatorie'); return; }
@@ -36,7 +65,14 @@ export default function Home() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Errore'); return; }
-      // Try to fetch app name from session or just use slug
+
+      if (data.status === 'pending_approval') {
+        setApprovalId(data.approvalId);
+        setAppName(appSlug);
+        setStep('pending');
+        return;
+      }
+
       setAppName(appSlug);
       setStep('otp');
     } finally { setLoading(false); }
@@ -79,7 +115,6 @@ export default function Home() {
       if (!verRes.ok) { setError(verData.error || 'Errore verifica passkey'); }
       finishLogin(verData);
     } catch (e: unknown) {
-      // User cancelled or browser doesn't support — just skip
       skipPasskey();
     } finally { setLoading(false); }
   }, [email, deviceName]);
@@ -122,13 +157,13 @@ export default function Home() {
     <main>
       <div className="login-container">
         <div className="login-card">
-          <h1>Unified Access</h1>
+          <h1>🔐 Unified Access</h1>
           {appName && <p className="muted">Accesso a: <strong>{appName}</strong></p>}
           {!appName && <p className="muted">Common authentication gateway</p>}
 
           {error && <div className="login-error">{error}</div>}
 
-          {/* STEP 1: Email — con passkey option */}
+          {/* STEP 1: Email */}
           {step === 'email' && (
             <div className="login-form">
               <label>
@@ -159,7 +194,22 @@ export default function Home() {
             </div>
           )}
 
-          {/* STEP 2: OTP */}
+          {/* STEP 2: Pending approval */}
+          {step === 'pending' && (
+            <div className="login-form">
+              <div className="pending-icon">⏳</div>
+              <h2>In attesa di approvazione</h2>
+              <p>La tua richiesta di accesso a <strong>{appName}</strong> è stata inviata.</p>
+              <p className="muted">Un amministratore deve approvare il tuo accesso.</p>
+              <p className="muted">Questa pagina si aggiornerà automaticamente...</p>
+              <p className="poll-timer">{pollTimer > 0 ? `Controllo in corso... (${pollTimer})` : ''}</p>
+              <button className="btn-link" onClick={() => { setStep('email'); setApprovalId(''); setError(''); }}>
+                ← Indietro
+              </button>
+            </div>
+          )}
+
+          {/* STEP 3: OTP */}
           {step === 'otp' && (
             <div className="login-form">
               <p>Codice inviato a <strong>{email}</strong></p>
@@ -189,7 +239,7 @@ export default function Home() {
             </div>
           )}
 
-          {/* STEP 3: Passkey offer */}
+          {/* STEP 4: Passkey offer */}
           {step === 'passkey-offer' && (
             <div className="login-form">
               <p>✅ Accesso riuscito come <strong>{userEmail}</strong></p>
@@ -203,7 +253,7 @@ export default function Home() {
             </div>
           )}
 
-          {/* STEP 4: Done */}
+          {/* STEP 5: Done */}
           {step === 'done' && (
             <div className="login-form">
               <p>✅ Accesso riuscito come <strong>{userEmail}</strong></p>
