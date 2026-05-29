@@ -23,6 +23,8 @@ export async function sendTelegramNotification(message: TelegramMessage): Promis
     return false;
   }
 
+  console.log('[telegram] Sending notification to chat_id:', message.chat_id, 'bot token length:', botToken.length);
+
   try {
     const res = await fetch(
       `https://api.telegram.org/bot${botToken}/sendMessage`,
@@ -34,12 +36,13 @@ export async function sendTelegramNotification(message: TelegramMessage): Promis
     );
     const data = await res.json();
     if (!data.ok) {
-      console.error('Telegram API error:', data);
+      console.error('[telegram] API error:', JSON.stringify(data));
       return false;
     }
+    console.log('[telegram] Message sent successfully, msg_id:', data.result?.message_id);
     return true;
   } catch (err) {
-    console.error('Telegram notification failed:', err);
+    console.error('[telegram] Notification failed:', err);
     return false;
   }
 }

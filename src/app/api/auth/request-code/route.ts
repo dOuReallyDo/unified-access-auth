@@ -76,17 +76,18 @@ export async function POST(req: NextRequest) {
 
   // Send Telegram notification to admin
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://unified-access-auth-woad.vercel.app';
-  await sendTelegramNotification(
-    formatApprovalMessage({
-      approvalId: approval.id,
-      userEmail: user.email,
-      appName: app.name,
-      appSlug: app.slug,
-      requestIp: meta.ip,
-      userAgent: meta.userAgent,
-      baseUrl,
-    })
-  );
+  const tgMessage = formatApprovalMessage({
+    approvalId: approval.id,
+    userEmail: user.email,
+    appName: app.name,
+    appSlug: app.slug,
+    requestIp: meta.ip,
+    userAgent: meta.userAgent,
+    baseUrl,
+  });
+  console.log('[request-code] Sending Telegram notification, chat_id:', tgMessage.chat_id);
+  const tgResult = await sendTelegramNotification(tgMessage);
+  console.log('[request-code] Telegram notification result:', tgResult);
 
   await audit('otp.approval_requested', {
     targetUserId: user.id,
