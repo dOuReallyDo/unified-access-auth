@@ -1,10 +1,17 @@
 import { Resend } from 'resend';
-import { requiredEnv } from './env';
 
 export async function sendOtpEmail(to: string, code: string, appName: string) {
-  const resend = new Resend(requiredEnv('RESEND_API_KEY'));
+  const apiKey = process.env.RESEND_API_KEY;
+  
+  // Fallback: log OTP to console if Resend is not configured
+  if (!apiKey || apiKey === 'PLACEHOLDER' || apiKey.startsWith('placeholder')) {
+    console.log(`\n🔑 OTP CODE for ${to} (${appName}): ${code}\n`);
+    return;
+  }
+
+  const resend = new Resend(apiKey);
   await resend.emails.send({
-    from: process.env.AUTH_EMAIL_FROM ?? 'Access <no-reply@example.com>',
+    from: process.env.AUTH_EMAIL_FROM ?? 'Unified Access <no-reply@mailittlexp.org>',
     to,
     subject: `Your access code for ${appName}`,
     text: `Your ${appName} access code is ${code}. It is 6 characters (letters and digits) and expires in 10 minutes.`,
