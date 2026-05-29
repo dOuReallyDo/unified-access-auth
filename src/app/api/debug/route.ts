@@ -29,6 +29,7 @@ export async function GET() {
   // Test Telegram API connectivity
   let tgTest = 'not_tested';
   let tgSendTest = 'not_tested';
+  let tgApprovalTest = 'not_tested';
   if (hasTgToken) {
     try {
       const tgRes = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/getMe`);
@@ -47,6 +48,25 @@ export async function GET() {
       });
       const sendData = await sendRes.json();
       tgSendTest = sendData.ok ? `ok: msg_id=${sendData.result.message_id}` : `error: ${sendData.description} (code=${sendData.error_code})`;
+
+      // Also test HTML message with inline keyboard (same format as approval messages)
+      const approvalRes = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: '🔐 <b>Richiesta di accesso</b>\n\n👤 <b>Utente:</b> test@mailittlexp.org\n📱 <b>App:</b> Dealer Support\n\nSeleziona un\'azione:',
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [[
+              { text: '✅ Approva', url: 'https://unified-access-auth-woad.vercel.app/api/admin/approve/test' },
+              { text: '❌ Rifiuta', url: 'https://unified-access-auth-woad.vercel.app/api/admin/reject/test' },
+            ]],
+          },
+        }),
+      });
+      const approvalData = await approvalRes.json();
+      tgApprovalTest = approvalData.ok ? `ok: msg_id=${approvalData.result.message_id}` : `error: ${approvalData.description} (code=${approvalData.error_code})`;
     } catch (e: any) {
       tgSendTest = `exception: ${e.message}`;
     }
@@ -65,6 +85,7 @@ export async function GET() {
     telegramChatId: hasTgChat,
     telegramBotTest: tgTest,
     telegramSendTest: tgSendTest,
+    telegramApprovalTest: tgApprovalTest,
     hasResendKey: hasResend,
     resendKeyLength: resendLen,
   });
