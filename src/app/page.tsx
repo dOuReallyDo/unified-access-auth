@@ -76,7 +76,7 @@ export default function Home() {
       setAppName(appSlug);
       setStep('otp');
     } finally { setLoading(false); }
-  }, [email, appSlug]);
+  }, [email, appSlug, finishLogin]);
 
   const verifyCode = useCallback(async () => {
     if (!code) return;
@@ -93,7 +93,7 @@ export default function Home() {
       if (passkeysSupported) { setStep('passkey-offer'); }
       else { finishLogin(data); }
     } finally { setLoading(false); }
-  }, [code, email, appSlug, deviceName, passkeysSupported]);
+  }, [code, email, appSlug, deviceName, passkeysSupported, finishLogin]);
 
   const registerPasskey = useCallback(async () => {
     setLoading(true); setError('');
@@ -117,17 +117,17 @@ export default function Home() {
     } catch (e: unknown) {
       skipPasskey();
     } finally { setLoading(false); }
-  }, [email, deviceName]);
+  }, [email, deviceName, skipPasskey, finishLogin]);
 
-  const skipPasskey = () => {
+  const skipPasskey = useCallback(() => {
     setStep('done');
     if (returnTo) window.location.href = returnTo;
-  };
+  }, [returnTo]);
 
-  const finishLogin = (_data: { ok?: boolean }) => {
+  const finishLogin = useCallback((_data: { ok?: boolean }) => {
     setStep('done');
     if (returnTo) window.location.href = returnTo;
-  };
+  }, [returnTo]);
 
   const authenticateWithPasskey = useCallback(async () => {
     setLoading(true); setError('');
