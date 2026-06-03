@@ -26,8 +26,11 @@ function HomeContent() {
   const searchParams = useSearchParams();
   
   useEffect(() => {
-    setAppSlug(searchParams?.get('app') || '');
-    setReturnTo(searchParams?.get('returnTo') || '');
+    const ap = searchParams?.get('app') || new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '').get('app') || '';
+    const rt = searchParams?.get('returnTo') || new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '').get('returnTo') || '';
+    console.log('[DEBUG] AppSlug:', ap, 'ReturnTo:', rt);
+    setAppSlug(ap);
+    setReturnTo(rt);
     setPasskeysSupported(!!window.PublicKeyCredential);
   }, [searchParams]);
 
