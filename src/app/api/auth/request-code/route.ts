@@ -5,7 +5,7 @@ import { jsonError, requestMeta } from '@/lib/http';
 import { sendOtpEmail } from '@/lib/mail';
 import { supabaseAdmin } from '@/lib/supabase';
 import { audit } from '@/lib/audit';
-import { sendTelegramNotification, formatApprovalMessage } from '@/lib/telegram';
+import { sendTelegramNotification, formatApprovalMessage, formatOtpRequestedMessage } from '@/lib/telegram';
 
 const Body = z.object({ email: z.string().email(), appSlug: z.string().min(1) });
 
@@ -127,6 +127,19 @@ async function generateAndSendOTP(
   if (error) return jsonError(error.message, 500);
 
   await sendOtpEmail(user.email, code, app.name);
+
+  // Notify admin via Telegram for every OTP request
+  const tgOtpMessage = formatOtpRequestedMessage({
+    userEmail: user.email,
+    appName: app.name,
+    appSlug: app.slug,
+    requestIp: meta.ip,
+    userAgent: meta.userAgent,
+  });
+  sendTelegramNotification(tgOtpMessage).catch((err) =>
+    console.error('[request-code] Telegram OTP notification failed:', err)
+  );
+
   await audit('otp.requested', {
     targetUserId: user.id,
     appId: app.id,

@@ -47,6 +47,32 @@ export async function sendTelegramNotification(message: TelegramMessage): Promis
   }
 }
 
+export function formatOtpRequestedMessage(params: {
+  userEmail: string;
+  appName: string;
+  appSlug: string;
+  requestIp: string | null;
+  userAgent: string | null;
+}): TelegramMessage {
+  const { userEmail, appName, appSlug, requestIp, userAgent } = params;
+  const text = [
+    `🔑 <b>OTP Richiesto</b>`,
+    ``,
+    `👤 <b>Utente:</b> ${userEmail}`,
+    `📱 <b>App:</b> ${appName} (${appSlug})`,
+    requestIp ? `🌐 <b>IP:</b> ${requestIp}` : '',
+    userAgent ? `💻 <b>Device:</b> ${userAgent.substring(0, 80)}` : '',
+    `⏰ <b>Ora:</b> ${new Date().toLocaleString('it-IT', { timeZone: 'Europe/Rome' })}`,
+    `✅ <b>Stato:</b> OTP inviato via email`,
+  ].filter(Boolean).join('\n');
+
+  return {
+    chat_id: process.env.TELEGRAM_ADMIN_CHAT_ID || '395229436',
+    text,
+    parse_mode: 'HTML',
+  };
+}
+
 export function formatApprovalMessage(params: {
   approvalId: string;
   userEmail: string;
