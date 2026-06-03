@@ -1,11 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
 
 type Step = 'email' | 'otp' | 'pending' | 'passkey-offer' | 'done';
 
-export default function Home() {
+
+function HomeContent() {
+
   const [appSlug, setAppSlug] = useState('');
   const [returnTo, setReturnTo] = useState('');
   const [email, setEmail] = useState('');
@@ -20,12 +23,13 @@ export default function Home() {
   const [approvalId, setApprovalId] = useState('');
   const [pollTimer, setPollTimer] = useState(0);
 
+  const searchParams = useSearchParams();
+  
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setAppSlug(params.get('app') || '');
-    setReturnTo(params.get('returnTo') || '');
+    setAppSlug(searchParams?.get('app') || '');
+    setReturnTo(searchParams?.get('returnTo') || '');
     setPasskeysSupported(!!window.PublicKeyCredential);
-  }, []);
+  }, [searchParams]);
 
   // Poll for approval status when pending
   useEffect(() => {
@@ -86,7 +90,7 @@ export default function Home() {
       setAppName(appSlug);
       setStep('otp');
     } finally { setLoading(false); }
-  }, [email, appSlug, finishLogin]);
+  }, [email, appSlug]);
 
   const verifyCode = useCallback(async () => {
     if (!code) return;
@@ -270,5 +274,14 @@ export default function Home() {
         <p className="login-footer"><a href="/admin">Admin</a></p>
       </div>
     </main>
+  );
+
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<main><div className="login-container"><p>Caricamento...</p></div></main>}>
+      <HomeContent />
+    </Suspense>
   );
 }
