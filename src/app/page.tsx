@@ -54,6 +54,16 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [step, approvalId, email]);
 
+  const skipPasskey = useCallback(() => {
+    setStep('done');
+    if (returnTo) window.location.href = returnTo;
+  }, [returnTo]);
+
+  const finishLogin = useCallback((_data: { ok?: boolean }) => {
+    setStep('done');
+    if (returnTo) window.location.href = returnTo;
+  }, [returnTo]);
+
   const requestCode = useCallback(async () => {
     if (!email || !appSlug) { setError('Email e app sono obbligatorie'); return; }
     setLoading(true); setError('');
@@ -118,16 +128,6 @@ export default function Home() {
       skipPasskey();
     } finally { setLoading(false); }
   }, [email, deviceName, skipPasskey, finishLogin]);
-
-  const skipPasskey = useCallback(() => {
-    setStep('done');
-    if (returnTo) window.location.href = returnTo;
-  }, [returnTo]);
-
-  const finishLogin = useCallback((_data: { ok?: boolean }) => {
-    setStep('done');
-    if (returnTo) window.location.href = returnTo;
-  }, [returnTo]);
 
   const authenticateWithPasskey = useCallback(async () => {
     setLoading(true); setError('');
