@@ -59,5 +59,5 @@ export async function POST(req: NextRequest) {
   await audit('session.created', { targetUserId: user.id, appId: app.id, metadata: { deviceId: device.id }, ip: meta.ip, userAgent: meta.userAgent });
   const c = await cookies();
   c.set('ua_session', token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', expires: new Date(expiresAt), path: '/' });
-  return NextResponse.json({ ok: true, token, expiresAt, user: { id: user.id, email: user.email }, app: { id: app.id, slug: app.slug, name: app.name }, role: access.role });
+  return NextResponse.json({ ok: true, token, expiresAt, user: { id: user.id, email: user.email }, app: { id: app.id, slug: app.slug, name: app.name, redirect_url: app.redirect_url }, role: access.role });
 }

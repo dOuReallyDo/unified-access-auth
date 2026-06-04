@@ -11,6 +11,8 @@ function HomeContent() {
 
   const [appSlug, setAppSlug] = useState('');
   const [returnTo, setReturnTo] = useState('');
+  const [redirectUrl, setRedirectUrl] = useState('');
+  const [redirecting, setRedirecting] = useState(false);
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [deviceName, setDeviceName] = useState('');
@@ -61,15 +63,31 @@ function HomeContent() {
     return () => clearInterval(interval);
   }, [step, approvalId, email]);
 
-  const skipPasskey = useCallback(() => {
-    setStep('done');
-    if (returnTo) window.location.href = returnTo;
-  }, [returnTo]);
+  const resolveDestination = useCallback((appRedirect?: string | null) => {
+    const registered = appRedirect || redirectUrl;
+    let registeredOrigin: string | null = null;
+    try { registeredOrigin = registered ? new URL(registered).origin : null; } catch { registeredOrigin = null; }
+    // returnTo is honored only as an override within the app's registered origin (no open redirect)
+    if (returnTo && registeredOrigin) {
+      try { if (new URL(returnTo).origin === registeredOrigin) return returnTo; } catch { /* invalid returnTo */ }
+    }
+    return registered || '';
+  }, [returnTo, redirectUrl]);
 
-  const finishLogin = useCallback((_data: { ok?: boolean }) => {
+  const goToDestination = useCallback((appRedirect?: string | null) => {
+    const dest = resolveDestination(appRedirect);
+    setRedirecting(!!dest);
     setStep('done');
-    if (returnTo) window.location.href = returnTo;
-  }, [returnTo]);
+    if (dest) window.location.href = dest;
+  }, [resolveDestination]);
+
+  const skipPasskey = useCallback(() => {
+    goToDestination();
+  }, [goToDestination]);
+
+  const finishLogin = useCallback((data: { app?: { redirect_url?: string | null }; session?: { app?: { redirect_url?: string | null } } }) => {
+    goToDestination(data?.app?.redirect_url ?? data?.session?.app?.redirect_url);
+  }, [goToDestination]);
 
   const requestCode = useCallback(async () => {
     if (!email || !appSlug) { setError('Email e app sono obbligatorie'); return; }
@@ -107,6 +125,7 @@ function HomeContent() {
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Codice non valido'); return; }
       setUserEmail(data.user?.email || email);
+      setRedirectUrl(data.app?.redirect_url || '');
       if (passkeysSupported) { setStep('passkey-offer'); }
       else { finishLogin(data); }
     } finally { setLoading(false); }
@@ -264,10 +283,9 @@ function HomeContent() {
           {step === 'done' && (
             <div className="login-form">
               <p>✅ Accesso riuscito come <strong>{userEmail}</strong></p>
-              {returnTo && (
+              {redirecting ? (
                 <p className="muted">Reindirizzamento in corso...</p>
-              )}
-              {!returnTo && (
+              ) : (
                 <a href="/admin">Vai alla dashboard admin</a>
               )}
             </div>
