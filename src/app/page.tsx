@@ -44,7 +44,7 @@ function HomeContent() {
         const res = await fetch(`/api/auth/request-status?approvalId=${approvalId}&email=${encodeURIComponent(email)}`);
         const data = await res.json();
         if (data.status === 'approved') {
-          setStep('email');
+          setStep('otp');
           setError('');
           setApprovalId('');
           clearInterval(interval);
