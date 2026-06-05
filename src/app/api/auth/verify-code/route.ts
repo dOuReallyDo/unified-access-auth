@@ -61,18 +61,13 @@ export async function POST(req: NextRequest) {
   c.set('ua_session', token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', expires: new Date(expiresAt), path: '/' });
 
   // Build redirect_url with ua_token appended for cross-domain cookie propagation
-  // Client apps on different *.vercel.app domains can't read our ua_session cookie,
-  // so we pass the token in the URL and let their callback route mirror it.
+  // Client apps on different domains can't read our ua_session cookie,
+  // so we pass the token in the URL. CF Pages _middleware.js and ua-auth.js
+  // handle the token on the client side — no /api/auth/callback needed.
   let finalRedirectUrl = app.redirect_url;
   if (finalRedirectUrl) {
     try {
       const url = new URL(finalRedirectUrl);
-      // Use /api/auth/callback as the entry point for client apps
-      // The client's callback route will validate the token and set domain-local cookie
-      const callbackPath = '/api/auth/callback';
-      if (!url.pathname.includes(callbackPath)) {
-        url.pathname = callbackPath;
-      }
       url.searchParams.set('ua_token', token);
       finalRedirectUrl = url.toString();
     } catch {

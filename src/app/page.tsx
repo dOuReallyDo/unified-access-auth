@@ -74,12 +74,11 @@ function HomeContent() {
     if (returnTo && registeredOrigin) {
       try {
         if (new URL(returnTo).origin === registeredOrigin) {
-          // Build callback URL with both ua_token and returnTo for cross-domain cookie propagation
+          // Use the project root with ua_token (CF Pages middleware/ua-auth.js handles it)
           if (uaToken) {
-            const callbackUrl = new URL('/api/auth/callback', registeredOrigin);
-            callbackUrl.searchParams.set('ua_token', uaToken);
-            callbackUrl.searchParams.set('returnTo', returnTo);
-            return callbackUrl.toString();
+            const destUrl = new URL(returnTo);
+            destUrl.searchParams.set('ua_token', uaToken);
+            return destUrl.toString();
           }
           return returnTo;
         }
