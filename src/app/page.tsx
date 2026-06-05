@@ -63,19 +63,33 @@ function HomeContent() {
     return () => clearInterval(interval);
   }, [step, approvalId, email]);
 
-  const resolveDestination = useCallback((appRedirect?: string | null) => {
+  const resolveDestination = useCallback((appRedirect?: string | null, token?: string) => {
     const registered = appRedirect || redirectUrl;
     let registeredOrigin: string | null = null;
-    try { registeredOrigin = registered ? new URL(registered).origin : null; } catch { registeredOrigin = null; }
+    let registeredUrl: URL | null = null;
+    try { if (registered) { registeredUrl = new URL(registered); registeredOrigin = registeredUrl.origin; } } catch { registeredOrigin = null; }
+    // Extract ua_token from the registered redirect URL (set by verify-code)
+    const uaToken = token || (registeredUrl?.searchParams.get('ua_token') || '');
     // returnTo is honored only as an override within the app's registered origin (no open redirect)
     if (returnTo && registeredOrigin) {
-      try { if (new URL(returnTo).origin === registeredOrigin) return returnTo; } catch { /* invalid returnTo */ }
+      try {
+        if (new URL(returnTo).origin === registeredOrigin) {
+          // Build callback URL with both ua_token and returnTo for cross-domain cookie propagation
+          if (uaToken) {
+            const callbackUrl = new URL('/api/auth/callback', registeredOrigin);
+            callbackUrl.searchParams.set('ua_token', uaToken);
+            callbackUrl.searchParams.set('returnTo', returnTo);
+            return callbackUrl.toString();
+          }
+          return returnTo;
+        }
+      } catch { /* invalid returnTo */ }
     }
     return registered || '';
   }, [returnTo, redirectUrl]);
 
-  const goToDestination = useCallback((appRedirect?: string | null) => {
-    const dest = resolveDestination(appRedirect);
+  const goToDestination = useCallback((appRedirect?: string | null, token?: string) => {
+    const dest = resolveDestination(appRedirect, token);
     setRedirecting(!!dest);
     setStep('done');
     if (dest) window.location.href = dest;
@@ -85,8 +99,8 @@ function HomeContent() {
     goToDestination();
   }, [goToDestination]);
 
-  const finishLogin = useCallback((data: { app?: { redirect_url?: string | null }; session?: { app?: { redirect_url?: string | null } } }) => {
-    goToDestination(data?.app?.redirect_url ?? data?.session?.app?.redirect_url);
+  const finishLogin = useCallback((data: { token?: string; app?: { redirect_url?: string | null }; session?: { app?: { redirect_url?: string | null } } }) => {
+    goToDestination(data?.app?.redirect_url ?? data?.session?.app?.redirect_url, data?.token);
   }, [goToDestination]);
 
   const requestCode = useCallback(async () => {
