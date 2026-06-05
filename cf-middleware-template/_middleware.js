@@ -52,9 +52,13 @@ export async function onRequest(context) {
           const returnTo = url.searchParams.get('returnTo');
           if (returnTo) cleanUrl.searchParams.set('returnTo', returnTo);
 
-          const response = Response.redirect(cleanUrl.toString(), 302);
-          response.headers.append('Set-Cookie', `${COOKIE_NAME}=${uaToken}; Path=/; Max-Age=${COOKIE_MAX_AGE}; HttpOnly; Secure; SameSite=Lax`);
-          return response;
+          // NOTE: Response.redirect() returns immutable headers — appending
+          // Set-Cookie to it throws, which would be swallowed by the surrounding
+          // try/catch and cause a redirect loop. Build the response manually so
+          // the Set-Cookie header actually sticks.
+          const headers = new Headers({ Location: cleanUrl.toString() });
+          headers.append('Set-Cookie', `${COOKIE_NAME}=${uaToken}; Path=/; Max-Age=${COOKIE_MAX_AGE}; HttpOnly; Secure; SameSite=Lax`);
+          return new Response(null, { status: 302, headers });
         }
       }
     } catch (e) {
@@ -84,13 +88,13 @@ export async function onRequest(context) {
           return next();
         }
       }
-      // Invalid/expired cookie — clear it and redirect to login
-      const response = Response.redirect(
-        `${UA_ORIGIN}/?app=${APP_SLUG}&returnTo=${encodeURIComponent(url.origin + url.pathname)}`,
-        302
-      );
-      response.headers.append('Set-Cookie', `${COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`);
-      return response;
+      // Invalid/expired cookie — clear it and redirect to login.
+      // Same immutable-headers caveat as STEP 1: build the response manually.
+      const headers = new Headers({
+        Location: `${UA_ORIGIN}/?app=${APP_SLUG}&returnTo=${encodeURIComponent(url.origin + url.pathname)}`
+      });
+      headers.append('Set-Cookie', `${COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`);
+      return new Response(null, { status: 302, headers });
     } catch (e) {
       console.error('UAA validation error:', e);
       // Network error contacting UAA — allow through to avoid blocking all access
