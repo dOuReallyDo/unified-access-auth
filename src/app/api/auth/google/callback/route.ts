@@ -72,14 +72,20 @@ export async function GET(req: NextRequest) {
   // Create or get user, linking Google account
   const user = await getOrCreateUser(email);
   const db = supabaseAdmin();
-  const updateData: Record<string, string> = { provider: 'google' };
-  if (displayName && displayName !== email.split('@')[0]) {
-    updateData.display_name = displayName;
+  // Try to update with provider/google_id columns (migration 003)
+  // If columns don't exist yet, the update will fail silently and user can still proceed
+  try {
+    const updateData: Record<string, string> = { provider: 'google' };
+    if (displayName && displayName !== email.split('@')[0]) {
+      updateData.display_name = displayName;
+    }
+    if (googleUser.id) {
+      updateData.google_id = googleUser.id;
+    }
+    await db.from('users').update(updateData).eq('id', user.id);
+  } catch {
+    // Columns may not exist yet (migration 003 not run) — continue without them
   }
-  if (googleUser.id) {
-    updateData.google_id = googleUser.id;
-  }
-  await db.from('users').update(updateData).eq('id', user.id);
 
   // Check access — auto-grant for Google-authenticated users
   let access = await userHasAccess(user.id, app.id);
